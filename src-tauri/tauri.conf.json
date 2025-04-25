@@ -1,0 +1,30 @@
+
+{
+  "package": {
+    "productName": "GlyphShell",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "windows": [
+      {
+        "title": "GlyphShell :: ChatGPT Vessel",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "dangerousRemoteDomainIpcAccess": ["https://chat.openai.com"]
+    },
+    "allowlist": {
+      "all": true
+    }
+  },
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "../src",
+    "distDir": "../src"
+  }
+}
