@@ -6,8 +6,7 @@ It is designed to be a clean base for building more complex AI interaction layer
 
 ## Features
 - Lightweight Tauri-based app (~3MB)
-- Full native wrapper for https://chat.openai.com
-- MIT licensed and clean for extension
+- Full native wrapper for https://chatgpt.com
 
 ## Getting Started
 ```bash
