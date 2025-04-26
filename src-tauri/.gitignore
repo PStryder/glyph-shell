@@ -21,3 +21,5 @@ Thumbs.db
 
 # VS Code
 .vscode/
+#VS Code Workspace
+*.code-workspace
