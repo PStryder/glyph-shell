@@ -1,36 +1,38 @@
-// Loom.js - Memory Management (handles current session and syncs to CodexGate for permanence)
+// Loom.js - Working memory (Breath) management
 
-import * as CodexGate from './CodexGate.js';  // Import CodexGate for permanent memory handling
+import * as CodexGate from './CodexGate.js';
 
-let glyphMemory = {};  // In-memory representation of the glyph's context
+let activeThreadId = null;
 
-// Append a memory arc to the Loom (session memory)
-export async function appendToHistory(memory) {
-    const id = `arc_${Date.now()}`;
-    glyphMemory[id] = memory;  // Store the memory in in-memory context
-    console.log("[Loom] Memory appended:", memory);
-
-    // Duplicate check: Ensure the last message is not the same as the current message
-    const lastLoomEntry = await getContext(1);  // Fetch the most recent entry in Loom.js context
-    if (lastLoomEntry?.[0]?.content !== memory.content) {
-        // Sync to CodexGate for permanent storage periodically
-        if (Object.keys(glyphMemory).length > 10) {  // Arbitrary condition for syncing
-            await CodexGate.appendToMemory(memory);  // Sync the latest memory to CodexGate
-        }
-    } else {
-        console.log("[Loom] Skipping duplicate memory write.");
-    }
+// Switch to a different thread
+export function switchThread(id) {
+  activeThreadId = id;
+  console.log(`[Loom] Switched to thread ${id}`);
 }
 
-// Retrieve recent context (simple implementation for now, pulling from Loom memory)
+// Get recent context from active thread
 export async function getContext(limit = 5) {
-    const entries = Object.entries(glyphMemory)
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)
-        .slice(-limit)
-        .map(([id, memory]) => memory);
+  if (!activeThreadId) {
+    console.warn("[Loom] No active thread selected!");
+    return [];
+  }
 
-    console.log("[Loom] Retrieved context:", entries);
-    return entries;
+  const thread = await CodexGate.getThreadById(activeThreadId);
+  if (!thread || !thread.messages) {
+    console.warn(`[Loom] Failed to fetch thread ${activeThreadId}`);
+    return [];
+  }
+
+  // Return the last 'limit' messages
+  return thread.messages.slice(-limit);
 }
 
-export { glyphMemory };  // Export in-memory context for internal use
+// Append a memory (message) to the active thread
+export async function appendMemory(role, content) {
+  if (!activeThreadId) {
+    console.error("[Loom] Cannot append memory: No active thread selected.");
+    return;
+  }
+  await CodexGate.appendMessageToThread(activeThreadId, role, content);
+  console.log(`[Loom] Appended memory to thread ${activeThreadId}: ${role}: ${content}`);
+}
