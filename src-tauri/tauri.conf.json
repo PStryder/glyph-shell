@@ -12,12 +12,19 @@
     {
       
       "url": "http://127.0.0.1:5500/src/index.html",     
-      "title": "ChatGPT Vessel",        
+      "title": "Glyph Shell",        
       "width": 1280,                    
       "height": 800,                    
       "resizable": true,                
       "fullscreen": false               
     }
   ]
-}
+},
+
+  "plugins": {
+    "sql": {
+      "default": "sqlite:codex.db"
+    }
+  }
+
 }
