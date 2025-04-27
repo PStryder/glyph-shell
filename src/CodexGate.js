@@ -1,67 +1,40 @@
-// CodexGate.js - Permanent I/O path for memory storage (retaining Dexie.js)
+// CodexGate.js - Unified interface for Cathedral memory
 
-import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.3/+esm';
+import * as BreathCodex from './BreathCodex.js';
+import * as StoneCodex from './StoneCodex.js';
 
-// Create a new Dexie database instance named 'GlyphDB'
-const db = new Dexie('GlyphDB');
-
-// Define the structure of the database and its version
-db.version(1).stores({
-  threads: '++id, name, createdAt',  // Define the threads table with columns: id (auto-increment), name, createdAt
-});
-
-// Base structure of a thread: { id, name, createdAt, messages: [{role, content}] }
-
-// Function to add a new thread to the database
+// Create a new thread in both Breath and Stone
 export async function addThread(name = null) {
-  const now = Date.now();  // Get the current timestamp
-  const thread = {
-    name: name || `Thread started: ${new Date(now).toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,  // Default name if none provided
-    createdAt: now,  // Set creation timestamp
-    messages: []  // Start with an empty array of messages
-  };
-  const id = await db.threads.add(thread);  // Add the thread to the database and get its auto-generated ID
-  return { ...thread, id };  // Return the new thread with its ID
+  const breathThread = await BreathCodex.addThread(name);
+  await StoneCodex.addThread(breathThread.name);
+  return breathThread;  // Return Breath thread for Loom usage
 }
 
-// Function to get all threads, ordered by creation time (most recent first)
+// Fetch all threads (from Breath for speed)
 export async function getAllThreads() {
-  return await db.threads.orderBy('createdAt').reverse().toArray();  // Retrieve all threads sorted by createdAt in descending order
+  return await BreathCodex.getAllThreads();
 }
 
-// Function to get a specific thread by its ID
+// Fetch specific thread (always from Breath, populated at session start from Stone)
 export async function getThreadById(id) {
-  return await db.threads.get(id);  // Fetch the thread with the provided ID
+  return await BreathCodex.getThreadById(id);
 }
 
-// Function to delete a thread by its ID
+// Delete a thread in both Breath and Stone
 export async function deleteThread(id) {
-  return await db.threads.delete(id);  // Delete the thread from the database
+  await BreathCodex.deleteThread(id);
+  await StoneCodex.deleteThread(id);
 }
 
-// Function to append a message to a specific thread
+// Append message to thread in both Breath and Stone
 export async function appendMessageToThread(id, role, content) {
-  const thread = await db.threads.get(id);  // Retrieve the thread by its ID
-  if (!thread) throw new Error('Thread not found');  // Throw an error if the thread doesn't exist
-  thread.messages.push({ role, content });  // Add the new message to the thread's messages array
-  await db.threads.put(thread);  // Save the updated thread back to the database
+  await BreathCodex.appendMessageToThread(id, role, content);
+  await StoneCodex.appendMessageToThread(id, role, content);
 }
 
-// Function to save an imported thread object directly into the database
+// Import a thread into both Breath and Stone
 export async function saveImportedThread(importedThread) {
-  if (!importedThread || !importedThread.name || !Array.isArray(importedThread.messages)) {
-    throw new Error("Invalid thread format for import.");
-  }
-
-  const newThread = {
-    name: importedThread.name,  // Use the imported thread's name
-    messages: importedThread.messages.map(m => ({
-      role: m.role,  // Map each message with its role and content
-      content: m.content
-    })),
-    createdAt: Date.now()  // Set the creation timestamp to the current time
-  };
-
-  const id = await db.threads.add(newThread);  // Add the new thread to the database
-  return { id, ...newThread };  // Return the newly imported thread with its ID
+  const breathThread = await BreathCodex.saveImportedThread(importedThread);
+  await StoneCodex.saveImportedThread(importedThread);
+  return breathThread;
 }
