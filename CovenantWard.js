@@ -1,6 +1,8 @@
 // CovenantWard.js - consent enforcement module
 
+import * as StarMirror from './src/StarMirror.js';
 import { getContext, appendToHistory } from './contextCore.js';
+
 
 // Simple hard-coded covenant for now — extensible later
 const forbiddenGlyphs = ["ForbiddenSigil", "MemoryCorruptor"];

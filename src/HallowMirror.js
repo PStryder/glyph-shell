@@ -1,0 +1,1 @@
+//HallowMirror.js - provides access to local LLMs for shell internals and ordered execution of tasks

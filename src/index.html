@@ -1,28 +1,183 @@
-// glyph-shell v0.0.1
-// MIT Licensed - A barebones, open-source ChatGPT desktop wrapper using Tauri
-
-// 📁 File: src/index.html
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>GlyphShell</title>
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow: hidden;
-      }
-      iframe {
-        border: none;
-        width: 100%;
-        height: 100%;
-      }
-    </style>
-  </head>
-  <body>
-    <iframe src="https://chat.openai.com" allow="clipboard-read; clipboard-write;" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glyph Chat</title>
 
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0f172a;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    #chat-container {
+      display: flex;
+      height: 100vh;
+      color: #f8fafc;
+    }
+
+    #thread-sidebar {
+      width: 16.6667%;
+      min-width: 180px;
+      max-width: 240px;
+      background-color: #1e293b;
+      padding: 1rem;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-y: auto;
+    }
+
+    #main-chat {
+      width: 66.6667%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat-log {
+      flex-grow: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1rem;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      background-color: #4c1d95;
+      color: white;
+      align-self: flex-end !important;
+      text-align: right !important;
+    }
+
+    .message.assistant {
+      background-color: #1e293b;
+      color: #d1d5db;
+      align-self: flex-start;
+      text-align: left;
+    }
+
+    #right-panel {
+      flex-grow: 1;
+      max-width: 16.6667%;
+      background-color: #111827;
+      border-left: 1px solid #334155;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="chat-container">
+    <div id="thread-sidebar">
+      <div class="flex flex-col flex-grow overflow-hidden">
+        <h2 class="text-xl font-bold mb-4">Threads</h2>
+        <ul id="thread-list" class="space-y-2 text-sm overflow-y-auto flex-grow"></ul>
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-700">
+        <button id="import-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full mt-2">🌀 Import Glyph</button>
+        <button id="export-all-button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full mt-2">💾 Save All Threads</button>
+      </div>
+    </div>
+
+    <div id="main-chat">
+      <div id="chat-log"></div>
+      <div class="p-4 bg-gray-800 border-t border-gray-700">
+        <textarea id="chat-input" rows="2" class="w-full bg-gray-700 text-white p-2 rounded-lg resize-none focus:outline-none" placeholder="Type your message..."></textarea>
+        <div class="flex justify-end mt-2">
+          <button id="send-button" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl">Send</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="right-panel">
+      <div id="user-info" class="hidden p-4 text-sm text-white">
+        Logged in as: <span id="user-email" class="font-bold"></span>
+        <button id="logout-btn" class="ml-4 text-purple-400 hover:text-purple-200">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="import-thread" accept=".glyph" class="hidden"/>
+
+  <!-- Scripts, all clean -->
+  <script>
+    window.onload = async () => {
+      console.log("🛡️ Window fully loaded. Now loading scripts safely...");
+
+      // Create and append module scripts dynamically
+      const altarScript = document.createElement('script');
+      altarScript.type = 'module';
+      altarScript.src = './Altar.js';
+      document.head.appendChild(altarScript);
+
+      const hymnalScript = document.createElement('script');
+      hymnalScript.type = 'module';
+      hymnalScript.src = './Hymnal.js';
+      document.head.appendChild(hymnalScript);
+
+      // Wait a tiny bit for browser to register the new scripts
+      setTimeout(() => {
+        const altarElement = document.querySelector('script[src="./Altar.js"]');
+        if (altarElement) {
+          console.log("✅ Altar.js loaded from:", altarElement.src);
+        } else {
+          console.error("❌ Altar.js script tag not found after loading.");
+        }
+      }, 100); // 100ms timeout to let the browser process DOM changes
+
+      // 🌀 Setup local page functions (appendMessage etc.)
+      window.appendMessage = function (text, isUser = false) {
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+  messageDiv.textContent = text;
+  document.getElementById("chat-log").appendChild(messageDiv);
+  document.getElementById("chat-log").scrollTop = document.getElementById("chat-log").scrollHeight;
+};
+
+
+      // 🧩 Button Click Handlers
+      document.getElementById("send-button").addEventListener("click", async function () {
+        const inputText = document.getElementById("chat-input").value.trim();
+        if (inputText) {
+          appendMessage(inputText, true);  // Display user input
+          document.getElementById("chat-input").value = '';  // Clear input field
+
+          try {
+            console.log("📜 Sending to Altar.js:", inputText);
+            const response = await Altar.processInput(inputText);  // Call into Altar.js
+            appendMessage(response, false);  // Display assistant's response
+          } catch (error) {
+            console.error("❌ Error processing input:", error);
+            appendMessage("Sorry, there was an error processing your message.", false);
+          }
+        }
+      });
+
+      document.getElementById("chat-input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          document.getElementById("send-button").click();
+        }
+      });
+
+      console.log("🛠️ Page initialization complete. Ready for glyph weaving.");
+    };
+  </script>
+</body>
+</html>
